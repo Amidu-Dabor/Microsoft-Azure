@@ -1,9 +1,9 @@
 param location string = resourceGroup().location
-param storageAccountName string = 'bicep${uniqueString(resourceGroup().id)}'
+param storageAccountName string = 'bicepwestus${uniqueString(resourceGroup().id)}'
 
-resource myStorageAccountad 'Microsoft.Storage/storageAccounts@2023-04-01' = {
+resource newStorageAccountDabs 'Microsoft.Storage/storageAccounts@2023-04-01' = {
   name: storageAccountName
-  location: location
+  location: 'westus'
   sku: {
     name: 'Standard_LRS'
   }
