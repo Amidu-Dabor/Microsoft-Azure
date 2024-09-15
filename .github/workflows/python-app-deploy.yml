@@ -55,12 +55,17 @@ jobs:
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
     # Login to Azure using OpenID Connect
-    - name: 'Azure CLI Login with OIDC'
-      uses: Azure/login@v1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    # - name: 'Azure CLI Login with OIDC'
+    #   uses: Azure/login@v1
+    #   with:
+    #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+    #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+    #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: 'Logging in'
+      shell: bash
+      run: |
+        az login --identity --username a8a30576-44d6-46fb-b113-69a66e5916a6
 
     - name: 'Run Azure Functions Action'
       uses: Azure/functions-action@v1
