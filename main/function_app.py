@@ -16,6 +16,6 @@ def main(req: func.HttpRequest, context: func.Context) -> func.HttpResponse:
 @app.route('/')
 def index():
     logging.info('Flask app about to do a redirect.')
-    return redirect('https://portal.azure.com', code=301)
+    return redirect('https://www.gigacourses.com/', code=301)
 
 
