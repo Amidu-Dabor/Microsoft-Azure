@@ -137,4 +137,7 @@ __blobstorage__
 __queuestorage__
 __azurite_db*__.json
 .python_packages
+
+# python-app-deploy.yml file
+.github/workflows/python-app-deploy.yml
 >>>>>>> 77a0b8b (First Azure Functions Commit)
