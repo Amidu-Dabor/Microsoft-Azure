@@ -3,28 +3,53 @@ name: Delete all Azure resource groups
 on:
   push:
   workflow_dispatch:
-
-env:
-  AZURE_FUNCTIONAPP_NAME: 'app-func0'   # set this to your function app name on Azure
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'       # set this to the path to your function app project, defaults to the repository root
-  PYTHON_VERSION: '3.11'                    # set this to the python version to use (e.g. '3.6', '3.7', '3.8')
-
+  
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     environment: dev
-    permissions:
-      id-token: write
-      contents: read
+    
     steps:
+    # Step 1: Checkout the repository
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@v3
 
-    - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
-      uses: actions/setup-python@v4
+    # Step 2: Log in to GitHub Container Registry
+    - name: 'Log in to GitHub Container Registry'
+      uses: docker/login-action@v3.3.0
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        registry: ghcr.io
+        username: ${{ secrets.GITHUB_ACTOR }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
+    # Step 3: Lowercase the repository and username
+    - name: 'Lowercase the repo and username'
+      shell: pwsh
+      run: |
+        $username = $env:GITHUB_ACTOR
+        $repository = $env:GITHUB_REPOSITORY
+        $usernameLower = $username.ToLower()
+        $repositoryLower = $repository.ToLower()
+        Write-Host "Lowercased Username: $usernameLower"
+        Write-Host "Lowercased Repository: $repositoryLower"
+
+        # Save the lowercased values as environment variables for the next steps
+        echo "REPO=$repositoryLower" >> $GITHUB_ENV
+        echo "USERNAME=$usernameLower" >> $GITHUB_ENV
+
+    # Step 4: Set up Docker Buildx
+    - name: 'Set up Docker Buildx'
+      uses: docker/setup-buildx-action@v3.6.1
+        
+    # Step 5: Build and push container image to Azure Container Registry (ACR)
+    - name: Build and push container image to ACR registry
+      uses: docker/build-push-action@v6.7.0
+      with:
+        push: true
+        tags: ${{ env.USERNAME }}.azurecr.io/${{ env.REPO }}:latest
+        file: ./Dockerfile
+
+    # Step 6: Cache pip packages
     - name: Cache pip packages
       uses: actions/cache@v3
       with:
@@ -33,6 +58,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
+    # Step 7: Cache Python packages
     - name: Cache Python packages
       uses: actions/cache@v4.0.2
       with:
@@ -41,6 +67,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-python-packages-
 
+    # Step 8: Resolve project dependencies using Pip
     - name: 'Resolve Project Dependencies Using Pip'
       shell: bash
       run: |
@@ -49,43 +76,19 @@ jobs:
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
         popd
 
+    # Step 9: Install Azure CLI
     - name: 'Installing Azure CLI'
       shell: bash
       run: |
         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
-    # Login to Azure using OpenID Connect
+    # Step 10: Login to Azure using OpenID Connect
     - name: 'Azure CLI Login with OIDC'
       uses: azure/login@v2
       with:
-       creds: ${{ secrets.AZURE_CREDENTIALS }}
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: 'List all resource groups'
-      shell: bash
+    # Step 11: Deploy the application (optional step for actual deployment)
+    - name: 'Deploy to Azure'
       run: |
-        az group list --query "[].name" | jq -r '.[]' > all-groups.txt
-    # az group list --query "[?name.contains(@, 'samba-file')]" | jq -r '.[] | .name'
-
-    - name: 'Delete all resource groups'
-      shell: bash
-      run: |
-        while read -r resource_group; do
-          echo "Deleting resource group: $resource_group"
-          
-          # List and remove locks on the resource group
-          locks=$(az lock list --resource-group "$resource_group" --query "[].id" -o tsv)
-          if [ -n "$locks" ]; then
-            echo "Removing locks from resource group: $resource_group"
-            for lock in $locks; do
-              az lock delete --ids "$lock"
-            done
-          fi
-
-          # Delete the resource group after locks are removed
-          az group delete --name "$resource_group" --yes --no-wait
-
-          # Wait for resource group deletion to complete
-          az group wait --name "$resource_group" --deleted
-
-          echo "Deleted resource group: $resource_group"
-        done < all-groups.txt
+        az webapp create --name ${{ env.REPO }} --resource-group MyResourceGroup --plan MyAppServicePlan --deployment-container-image-name ${{ env.USERNAME }}.azurecr.io/${{ env.REPO }}:latest
