@@ -1,4 +1,4 @@
-name: Remove demo and samba-file-share resource groups
+name: Delete all Azure resource groups
 
 on:
   push:
@@ -79,4 +79,4 @@ jobs:
     - name: 'Delete all resource groups'
       shell: bash
       run: |
-        az group list --query "[].name" | jq -r '.[]' | xargs -I {} az group delete --name {}
+        az group list --query "[].name" | jq -r '.[]' | xargs -I {} az group delete --name {} --yes
