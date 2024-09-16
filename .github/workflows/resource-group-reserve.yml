@@ -73,5 +73,5 @@ jobs:
     - name: 'Get demo and samba-file-share resource groups'
       shell: bash
       run: |
-        az group list --query "[?name.contains(@, 'demo')]" | jq -r '.[] | .name'
-        az group list --query "[?name.contains(@, 'samba-file')]" | jq -r '.[] | .name'
+        az group list --query "[?name.contains(@, '.')]" | jq -r '.[] | .name'
+    # az group list --query "[?name.contains(@, 'samba-file')]" | jq -r '.[] | .name'
