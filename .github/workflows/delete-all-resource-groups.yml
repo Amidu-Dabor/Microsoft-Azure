@@ -73,10 +73,16 @@ jobs:
     - name: 'List all resource groups'
       shell: bash
       run: |
-        az group list --query "[].name" | jq -r '.[]'
+        az group list --query "[].name" | jq -r '.[]' > all-groups.txt
     # az group list --query "[?name.contains(@, 'samba-file')]" | jq -r '.[] | .name'
 
     - name: 'Delete all resource groups'
       shell: bash
       run: |
-        az group list --query "[].name" | jq -r '.[]' | xargs -I {} az group delete --name {} --yes
+        while read -r resource_group; do
+          echo "Deleting resource group: $resource_group"
+          az group delete --name "$resource_group" --yes
+          sleep 10
+          echo "All resource groups are deleted:"
+          echo "Deleted resource group: $resource_group"
+        done < all-groups.txt
